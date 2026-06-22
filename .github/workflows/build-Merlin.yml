@@ -45,6 +45,7 @@ jobs:
           mkdir -p bin
           echo "Building standard version for ${{ matrix.jobs.output }}"
           go build -trimpath -ldflags "-s -w -X 'main.version=${{ github.event.inputs.version }}'" -o bin/lucky-linux-${{ matrix.jobs.output }}
+          upx --best --lzma bin/lucky-linux-${{ matrix.jobs.output }} || true
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
