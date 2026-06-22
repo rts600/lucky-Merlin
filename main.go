@@ -18,14 +18,19 @@ import (
 )
 
 var (
-	listenPort       = flag.Int("p", 16601, "http Admin Web listen port ")
+	listenPort       = flag.Int("port", 16601, "http Admin Web listen port ")
 	configureFileURL = flag.String("c", "", "configure file url")
 
 	// 华硕梅林脚本兼容参数
-	cdFlag            = flag.String("cd", "", "config dir")
-	infoFlag          = flag.Bool("info", false, "output info")
-	baseConfInfoFlag  = flag.Bool("baseConfInfo", false, "output base config info")
-	rSetHttpAdminPort = flag.Int("rSetHttpAdminPort", 0, "set http admin port")
+	cdFlag             = flag.String("cd", "", "config dir")
+	infoFlag           = flag.Bool("info", false, "output info")
+	baseConfInfoFlag   = flag.Bool("baseConfInfo", false, "output base config info")
+	rRestart           = flag.Bool("rRestart", false, "restart")
+	rCancelSafeURL     = flag.Bool("rCancelSafeURL", false, "cancel safe url")
+	rResetUser         = flag.Bool("rResetUser", false, "reset user")
+	rSetHttpAdminPort  = flag.Int("rSetHttpAdminPort", 0, "set http admin port")
+	rSetHttpsAdminPort = flag.Int("rSetHttpsAdminPort", 0, "set https admin port")
+	rDisable2FA        = flag.Bool("rDisable2FA", false, "disable 2fa")
 )
 
 var (
@@ -67,17 +72,31 @@ func main() {
 		os.Exit(0)
 	}
 
-	if *rSetHttpAdminPort > 0 {
+	if *rSetHttpAdminPort > 0 || *rSetHttpsAdminPort > 0 || *rResetUser {
 		config.Read(*configureFileURL)
 		gcf := config.GetConfig()
-		gcf.BaseConfigure.AdminWebListenPort = *rSetHttpAdminPort
+		
+		if *rSetHttpAdminPort > 0 {
+			gcf.BaseConfigure.AdminWebListenPort = *rSetHttpAdminPort
+		}
+		if *rSetHttpsAdminPort > 0 {
+			gcf.BaseConfigure.AdminWebListenHttpsPort = *rSetHttpsAdminPort
+		}
+		if *rResetUser {
+			gcf.BaseConfigure.AdminAccount = "666"
+			gcf.BaseConfigure.AdminPassword = "666"
+		}
+		
 		config.Save()
-		// 继续执行或退出，按照梅林脚本习惯，重置后会退出或由脚本重启
-		// 此处直接退出，脚本会再次启动
+		// 重置完成后退出，由梅林脚本负责重新启动进程
 		os.Exit(0)
 	}
 
-
+	// 对于其余未实现的梅林重置指令 (重启、取消安全入口、禁用2FA)，直接退出防止卡死
+	// 注：1.4.10 原生代码库中并没有安全入口和2FA功能，所以这些指令无需任何实际操作
+	if *rRestart || *rCancelSafeURL || *rDisable2FA {
+		os.Exit(0)
+	}
 
 	config.InitAppInfo(version, date)
 
@@ -96,9 +115,9 @@ func main() {
 
 	gcf := config.GetConfig()
 
-	// 强制用命令行传入的 -p 覆盖配置文件中的端口
+	// 强制用命令行传入的 -port 覆盖配置文件中的端口
 	flag.Visit(func(f *flag.Flag) {
-		if f.Name == "p" {
+		if f.Name == "port" {
 			gcf.BaseConfigure.AdminWebListenPort = *listenPort
 		}
 	})
