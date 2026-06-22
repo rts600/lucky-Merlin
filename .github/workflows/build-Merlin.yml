@@ -64,6 +64,14 @@ jobs:
           path: release_bin
           merge-multiple: true
 
+      - name: Delete current release assets
+        uses: 8Mi-Tech/delete-release-assets-action@main
+        continue-on-error: true
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          tag: ${{ github.event.inputs.version }}
+          deleteOnlyFromDrafts: false
+
       - name: Create Release
         uses: softprops/action-gh-release@v2
         if: ${{ success() }}
