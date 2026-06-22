@@ -79,9 +79,7 @@ jobs:
           tag_name: ${{ github.event.inputs.version }}
           files: release_bin/*
           body: |
-            Lucky for ASUS Merlin (Optimized & Stripped Version)
-            
-            - Lucky for router only
+            Lucky for ASUS Merlin (Optimized Version)
             
             Architectures: `arm64`, `armv7`, `armv5`.
             Compressed with UPX (`--best --lzma`).
