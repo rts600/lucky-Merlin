@@ -1,0 +1,91 @@
+name: Build Lucky for ASUS Merlin
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release Version (e.g. 2.27.2)"
+        required: true
+        default: "2.27.2"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        jobs:
+          - { goos: linux, goarch: arm64, output: arm64 }
+          - { goos: linux, goarch: arm, goarm: '7', output: armv7 }
+          - { goos: linux, goarch: arm, goarm: '5', output: armv5 }
+
+    steps:
+      - name: Checkout codebase
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.20' # Use standard Go version
+
+      - name: Install UPX
+        shell: bash
+        run: |
+          sudo apt-get update && sudo apt-get install -y upx-ucl
+
+      - name: Build Standard Version (with UI)
+        env:
+          GOOS: ${{ matrix.jobs.goos }}
+          GOARCH: ${{ matrix.jobs.goarch }}
+          GOARM: ${{ matrix.jobs.goarm }}
+          CGO_ENABLED: 0
+        run: |
+          mkdir -p bin
+          echo "Building standard version for ${{ matrix.jobs.output }}"
+          go build -trimpath -ldflags "-s -w" -o bin/lucky-linux-${{ matrix.jobs.output }}
+          upx --best --lzma bin/lucky-linux-${{ matrix.jobs.output }} || true
+
+      - name: Build Core Version (No UI, redirect only)
+        env:
+          GOOS: ${{ matrix.jobs.goos }}
+          GOARCH: ${{ matrix.jobs.goarch }}
+          GOARM: ${{ matrix.jobs.goarm }}
+          CGO_ENABLED: 0
+        run: |
+          echo "Building core version for ${{ matrix.jobs.output }}"
+          go build -tags core -trimpath -ldflags "-s -w" -o bin/lucky-core-linux-${{ matrix.jobs.output }}
+          upx --best --lzma bin/lucky-core-linux-${{ matrix.jobs.output }} || true
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: lucky-${{ matrix.jobs.output }}-${{ github.event.inputs.version }}
+          path: bin/lucky-*
+
+  release:
+    permissions: write-all
+    needs: [build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release_bin
+          merge-multiple: true
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        if: ${{ success() }}
+        with:
+          tag_name: ${{ github.event.inputs.version }}
+          files: release_bin/*
+          body: |
+            Lucky for ASUS Merlin (Optimized & Stripped Version)
+            
+            - **Standard Version**: Includes local Web UI (`lucky-linux-*`)
+            - **Core Version**: Smallest size, completely strips local Web UI and uses cloud UI (`lucky-core-linux-*`)
+            
+            Architectures: `arm64`, `armv7`, `armv5`.
+            Compressed with UPX (`--best --lzma`).
