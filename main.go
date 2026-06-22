@@ -22,15 +22,10 @@ var (
 	configureFileURL = flag.String("c", "", "configure file url")
 
 	// 华硕梅林脚本兼容参数
-	cdFlag             = flag.String("cd", "", "config dir")
-	infoFlag           = flag.Bool("info", false, "output info")
-	baseConfInfoFlag   = flag.Bool("baseConfInfo", false, "output base config info")
-	rRestart           = flag.Bool("rRestart", false, "restart")
-	rCancelSafeURL     = flag.Bool("rCancelSafeURL", false, "cancel safe url")
-	rResetUser         = flag.Bool("rResetUser", false, "reset user")
-	rSetHttpAdminPort  = flag.Int("rSetHttpAdminPort", 0, "set http admin port")
-	rSetHttpsAdminPort = flag.Int("rSetHttpsAdminPort", 0, "set https admin port")
-	rDisable2FA        = flag.Bool("rDisable2FA", false, "disable 2fa")
+	cdFlag            = flag.String("cd", "", "config dir")
+	infoFlag          = flag.Bool("info", false, "output info")
+	baseConfInfoFlag  = flag.Bool("baseConfInfo", false, "output base config info")
+	rSetHttpAdminPort = flag.Int("rSetHttpAdminPort", 0, "set http admin port")
 )
 
 var (
@@ -72,10 +67,17 @@ func main() {
 		os.Exit(0)
 	}
 
-	// 对于梅林的重置和重启指令，由于当前版本过低不支持，为了防止阻塞卡死，直接退出
-	if *rRestart || *rCancelSafeURL || *rResetUser || *rSetHttpAdminPort > 0 || *rSetHttpsAdminPort > 0 || *rDisable2FA {
+	if *rSetHttpAdminPort > 0 {
+		config.Read(*configureFileURL)
+		gcf := config.GetConfig()
+		gcf.BaseConfigure.AdminWebListenPort = *rSetHttpAdminPort
+		config.Save()
+		// 继续执行或退出，按照梅林脚本习惯，重置后会退出或由脚本重启
+		// 此处直接退出，脚本会再次启动
 		os.Exit(0)
 	}
+
+
 
 	config.InitAppInfo(version, date)
 
@@ -94,6 +96,12 @@ func main() {
 
 	gcf := config.GetConfig()
 
+	// 强制用命令行传入的 -p 覆盖配置文件中的端口
+	flag.Visit(func(f *flag.Flag) {
+		if f.Name == "p" {
+			gcf.BaseConfigure.AdminWebListenPort = *listenPort
+		}
+	})
 	config.BlackListInit()
 	config.WhiteListInit()
 	config.SSLCertficateListInit()
