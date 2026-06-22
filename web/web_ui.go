@@ -1,5 +1,3 @@
-//go:build !core
-
 package web
 
 import (

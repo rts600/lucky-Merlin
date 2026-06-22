@@ -47,17 +47,6 @@ jobs:
           go build -trimpath -ldflags "-s -w" -o bin/lucky-linux-${{ matrix.jobs.output }}
           upx --best --lzma bin/lucky-linux-${{ matrix.jobs.output }} || true
 
-      - name: Build Core Version (No UI, redirect only)
-        env:
-          GOOS: ${{ matrix.jobs.goos }}
-          GOARCH: ${{ matrix.jobs.goarch }}
-          GOARM: ${{ matrix.jobs.goarm }}
-          CGO_ENABLED: 0
-        run: |
-          echo "Building core version for ${{ matrix.jobs.output }}"
-          go build -tags core -trimpath -ldflags "-s -w" -o bin/lucky-core-linux-${{ matrix.jobs.output }}
-          upx --best --lzma bin/lucky-core-linux-${{ matrix.jobs.output }} || true
-
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -84,8 +73,7 @@ jobs:
           body: |
             Lucky for ASUS Merlin (Optimized & Stripped Version)
             
-            - **Standard Version**: Includes local Web UI (`lucky-linux-*`)
-            - **Core Version**: Smallest size, completely strips local Web UI and uses cloud UI (`lucky-core-linux-*`)
+            - Lucky for router only
             
             Architectures: `arm64`, `armv7`, `armv5`.
             Compressed with UPX (`--best --lzma`).
