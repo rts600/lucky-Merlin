@@ -25,12 +25,9 @@ var (
 	cdFlag             = flag.String("cd", "", "config dir")
 	infoFlag           = flag.Bool("info", false, "output info")
 	baseConfInfoFlag   = flag.Bool("baseConfInfo", false, "output base config info")
-	rRestart           = flag.Bool("rRestart", false, "restart")
-	rCancelSafeURL     = flag.Bool("rCancelSafeURL", false, "cancel safe url")
 	rResetUser         = flag.Bool("rResetUser", false, "reset user")
 	rSetHttpAdminPort  = flag.Int("rSetHttpAdminPort", 0, "set http admin port")
 	rSetHttpsAdminPort = flag.Int("rSetHttpsAdminPort", 0, "set https admin port")
-	rDisable2FA        = flag.Bool("rDisable2FA", false, "disable 2fa")
 )
 
 var (
@@ -92,11 +89,7 @@ func main() {
 		os.Exit(0)
 	}
 
-	// 对于其余未实现的梅林重置指令 (重启、取消安全入口、禁用2FA)，直接退出防止卡死
-	// 注：1.4.10 原生代码库中并没有安全入口和2FA功能，所以这些指令无需任何实际操作
-	if *rRestart || *rCancelSafeURL || *rDisable2FA {
-		os.Exit(0)
-	}
+
 
 	config.InitAppInfo(version, date)
 
