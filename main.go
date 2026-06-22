@@ -19,6 +19,17 @@ import (
 var (
 	listenPort       = flag.Int("p", 16601, "http Admin Web listen port ")
 	configureFileURL = flag.String("c", "", "configure file url")
+
+	// 华硕梅林脚本兼容参数
+	cdFlag             = flag.String("cd", "", "config dir")
+	infoFlag           = flag.Bool("info", false, "output info")
+	baseConfInfoFlag   = flag.Bool("baseConfInfo", false, "output base config info")
+	rRestart           = flag.Bool("rRestart", false, "restart")
+	rCancelSafeURL     = flag.Bool("rCancelSafeURL", false, "cancel safe url")
+	rResetUser         = flag.Bool("rResetUser", false, "reset user")
+	rSetHttpAdminPort  = flag.Int("rSetHttpAdminPort", 0, "set http admin port")
+	rSetHttpsAdminPort = flag.Int("rSetHttpsAdminPort", 0, "set https admin port")
+	rDisable2FA        = flag.Bool("rDisable2FA", false, "disable 2fa")
 )
 
 var (
@@ -37,6 +48,34 @@ func init() {
 
 func main() {
 	flag.Parse()
+
+	if *infoFlag {
+		fmt.Printf(`{"Version":"%s"}`+"\n", version)
+		os.Exit(0)
+	}
+
+	if *cdFlag != "" {
+		if (*cdFlag)[len(*cdFlag)-1] != '/' && (*cdFlag)[len(*cdFlag)-1] != '\\' {
+			*cdFlag += "/"
+		}
+		*configureFileURL = *cdFlag + "lucky.conf"
+	}
+
+	if *baseConfInfoFlag {
+		err := config.Read(*configureFileURL)
+		if err != nil {
+			config.LoadDefault(*listenPort)
+		}
+		gcf := config.GetConfig()
+		fmt.Printf(`{"AdminWebListenPort":%d, "SafeURL":""}`+"\n", gcf.BaseConfigure.AdminWebListenPort)
+		os.Exit(0)
+	}
+
+	// 对于梅林的重置和重启指令，由于当前版本过低不支持，为了防止阻塞卡死，直接退出
+	if *rRestart || *rCancelSafeURL || *rResetUser || *rSetHttpAdminPort > 0 || *rSetHttpsAdminPort > 0 || *rDisable2FA {
+		os.Exit(0)
+	}
+
 	config.InitAppInfo(version, date)
 
 	err := config.Read(*configureFileURL)
